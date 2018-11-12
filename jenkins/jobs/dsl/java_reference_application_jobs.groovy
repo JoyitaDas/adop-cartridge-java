@@ -1,7 +1,7 @@
 import pluggable.scm.*;
 import adop.cartridge.properties.*;
 
-SCMProvider scmProvider = SCMProvider.getScmProvider("${SCM_PROVIDER_ID}", binding.variables)
+SCMProvider scmProvider = SCMProviderHandler.getScmProvider("${SCM_PROVIDER_ID}", binding.variables)
 CartridgeProperties cartridgeProperties = new CartridgeProperties("${CARTRIDGE_CUSTOM_PROPERTIES}");
 
 // Folders
@@ -11,10 +11,8 @@ def projectScmNamespace = "${SCM_NAMESPACE}"
 
 // Variables
 def projectNameKey = projectFolderName.toLowerCase().replace("/", "-")
-def referenceAppgitRepo = "spring-petclinic"
-def regressionTestGitRepo = "adop-cartridge-java-regression-tests"
-def referenceAppGitUrl = cartridgeProperties.getProperty("scm.code.repo.name", "spring-petclinic")
-def regressionTestGitUrl =  cartridgeProperties.getProperty("scm.code.repo.name","adop-cartridge-java-regression-tests")
+def referenceAppgitRepo = cartridgeProperties.getProperty("scm.code.repo.name", "spring-petclinic")
+def regressionTestGitRepo =  cartridgeProperties.getProperty("scm.test.repo.name", "adop-cartridge-java-regression-tests")
 
 // Jobs
 def buildAppJob = freeStyleJob(projectFolderName + "/Reference_Application_Build")
@@ -46,16 +44,7 @@ buildAppJob.with {
         maskPasswords()
         sshAgent("adop-jenkins-master")
     }
-    scm {
-        git {
-            remote {
-                url(referenceAppGitUrl)
-                credentials("adop-jenkins-master")
-            }
-            branch("*/master")
-        }
-    }
-    scm scmProvider.get( projectScmNamespace, '${referenceAppGitUrl}', "*/master", "adop-jenkins-master", null)
+    scm scmProvider.get(projectScmNamespace, referenceAppgitRepo, "*/master", "adop-jenkins-master", null)
     environmentVariables {
         env('WORKSPACE_NAME', workspaceFolderName)
         env('PROJECT_NAME', projectFolderName)
@@ -248,7 +237,7 @@ regressionTestJob.with {
         stringParam("PARENT_BUILD", "Reference_Application_Build", "Parent build name")
         stringParam("ENVIRONMENT_NAME", "CI", "Name of the environment.")
     }
-    scm scmProvider.get("regressionTest", regressionTestGitUrl, "*/master", "adop-jenkins-master", null)
+    scm scmProvider.get(projectScmNamespace, regressionTestGitRepo, "*/master", "adop-jenkins-master", null)
     wrappers {
         preBuildCleanup()
         injectPasswords()

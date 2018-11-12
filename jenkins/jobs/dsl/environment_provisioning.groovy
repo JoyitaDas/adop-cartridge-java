@@ -1,7 +1,7 @@
 import pluggable.scm.*;
 import adop.cartridge.properties.*;
 
-SCMProvider scmProvider = SCMProvider.getScmProvider("${SCM_PROVIDER_ID}", binding.variables)
+SCMProvider scmProvider = SCMProviderHandler.getScmProvider("${SCM_PROVIDER_ID}", binding.variables)
 CartridgeProperties cartridgeProperties = new CartridgeProperties("${CARTRIDGE_CUSTOM_PROPERTIES}");
 
 // Folders
@@ -10,7 +10,7 @@ def projectFolderName = "${PROJECT_NAME}"
 def projectScmNamespace = "${SCM_NAMESPACE}"
 
 // Variables
-def environmentTemplateGitRepo =  cartridgeProperties.getProperty("scm.code.repo.name","adop-cartridge-java-environment-template")
+def environmentTemplateGitRepo =  cartridgeProperties.getProperty("scm.env.repo.name", "adop-cartridge-java-environment-template")
 
 
 // Jobs
@@ -26,7 +26,6 @@ Note : If you running this job for the first time then please keep the environme
 The reference application deploy job is expecting the default environment to be available.''')
     parameters {
         choiceParam('ENVIRONMENT_TYPE', ['DEV', 'PROD'], 'Create Environment for development(named: CI) or production (named: PRODA and PRODB)')
-        stringParam("ENVIRONMENT_TEMPLATE_GIT_URL","", "The URL for environment Template,  adop-cartridge-java-environment-template.")
     }
     label("docker")
     environmentVariables {
@@ -83,7 +82,7 @@ The reference application deploy job is expecting the default environment to be 
                 |docker exec proxy /usr/sbin/nginx -s reload
                 |set -x'''.stripMargin())
     }
-    scm scmProvider.get(projectScmNamespace, '${environmentTemplateGitRepo}', "*/master", "adop-jenkins-master", null)
+    scm scmProvider.get(projectScmNamespace, environmentTemplateGitRepo, "*/master", "adop-jenkins-master", null)
     publishers {
         buildPipelineTrigger("${PROJECT_NAME}/Destroy_Environment") {
             parameters {
@@ -104,7 +103,7 @@ destroyEnvironmentJob.with{
         env('WORKSPACE_NAME',workspaceFolderName)
         env('PROJECT_NAME',projectFolderName)
     }
-    scm scmProvider.get(projectScmNamespace, '${ENVIRONMENT_TEMPLATE_GIT_URL}', "*/master", "adop-jenkins-master", null)
+    scm scmProvider.get(projectScmNamespace, environmentTemplateGitRepo, "*/master", "adop-jenkins-master", null)
     wrappers {
         preBuildCleanup()
         injectPasswords()
